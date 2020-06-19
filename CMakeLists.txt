@@ -16,9 +16,11 @@
 
 set (P4MERGE_SRCS
   p4merge.cpp
+  mergeManager.cpp
   )
 set (P4MERGE_HDRS
   midend.h
+  mergeManager.h
   )
 #set (P4MERGE_FRONTEND_SRCS
 #  ${CMAKE_CURRENT_SOURCE_DIR}/frontends/mfrontend.cpp
