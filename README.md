@@ -20,9 +20,7 @@ sudo make install
 1. Command line interface  √
 2. Top4      √
 3. Rename IR::nodes     *working on*
-**本人硬盘坏了，拿去换硬盘加内存重装系统**
-
-4.  Naive merge
+4.  Naive merge  *working on*
 5.  Optimize
 
 
