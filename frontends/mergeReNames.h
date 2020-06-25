@@ -27,6 +27,7 @@ class MRenameMap {
     // Internal declaration name
     std::map<const IR::IDeclaration*, cstring> newName;
     std::set<const IR::P4Action*> inTable;  // all actions that appear in tables
+    
 
  public:
     void setNewName(const IR::IDeclaration* decl, cstring name) {
@@ -80,7 +81,11 @@ class MFindSymbols : public Inspector {
             refMap(refMap), renameMap(renameMap),postName(p)
     { CHECK_NULL(refMap); CHECK_NULL(renameMap); setName("MFindSymbols"); }
     void doDecl(const IR::Declaration* decl) {
-        cstring newName = refMap->newName(decl->getName())+postName;  //now hard code
+        cstring newName = refMap->newName(decl->getName())+postName;  
+        renameMap->setNewName(decl, newName);
+    }
+    void doDecl(const IR::Type_Declaration* decl) {
+        cstring newName = refMap->newName(decl->getName())+postName;  
         renameMap->setNewName(decl, newName);
     }
     void postorder(const IR::Declaration_Variable* decl) override
@@ -93,16 +98,30 @@ class MFindSymbols : public Inspector {
     { doDecl(decl); }
     void postorder(const IR::P4Action* decl) override
     { if (!isTopLevel()) doDecl(decl); }
+    void postorder(const IR::ParserState* s) override  //Zoe
+    { 
+        if(s->getName()!="accept")
+            doDecl(s); 
+        else
+            renameMap->setNewName(s, "accept");
+    }
+    /*
+    void postorder(const IR::Type_Header* h) override  //Zoe
+    { doDecl(h); }
+    void postorder(const IR::Type_Struct* h) override  //Zoe
+    { doDecl(h); }
+    */
 };
 
 class MRenameSymbols : public Transform {
     ReferenceMap *refMap;
     MRenameMap    *renameMap;
+    cstring postName;  
 
     IR::ID* getName() const;
  public:
-    MRenameSymbols(ReferenceMap *refMap, MRenameMap *renameMap) :
-            refMap(refMap), renameMap(renameMap)
+    MRenameSymbols(ReferenceMap *refMap, MRenameMap *renameMap,const char * p) :
+            refMap(refMap), renameMap(renameMap),postName(p)
     { CHECK_NULL(refMap); CHECK_NULL(renameMap); setName("MRenameSymbols"); }
     const IR::Node* postorder(IR::Declaration_Variable* decl) override;
     const IR::Node* postorder(IR::Declaration_Constant* decl) override;
@@ -111,6 +130,10 @@ class MRenameSymbols : public Transform {
     const IR::Node* postorder(IR::P4Table* decl) override;
     const IR::Node* postorder(IR::P4Action* decl) override;
     const IR::Node* postorder(IR::Parameter* param) override;
+    const IR::Node* postorder(IR::ParserState* s) override; //Zoe
+    //const IR::Node* postorder(IR::Type_Header* h) override; //Zoe
+    //const IR::Node* postorder(IR::Type_Struct* h) override; //Zoe
+
 };
 
 // Finds parameters for actions that will be given unique names
@@ -137,6 +160,7 @@ class MFindParameters : public Inspector {
         bool inTable = renameMap->isInTable(action);
         doParameters(action->parameters, !inTable);
     }
+    
 };
 
 // Give each parameter of a table and action a new unique name

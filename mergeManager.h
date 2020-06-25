@@ -24,24 +24,47 @@ limitations under the License.
 namespace P4 {
 
 
-class MergeManager {
+class MergeManager : public Inspector{
     const IR::P4Program* meta;
     const IR::P4Program* program1;
     const IR::P4Program* program2;
     IR::P4Program result;
+    //std::map<const IR::Node*, cstring> headerName;
+    std::set<cstring> headerName;
+    //IR::P4Parser* p1parser=nullptr;
+    //IR::P4Parser* p2parser=nullptr;
+    IR::P4Parser mergeParser;
+    bool isP1parser=false;
+    bool isP2parser=false;
+
 public:
-    MergeManager() = default;
-    MergeManager(const IR::P4Program* m,const IR::P4Program* p1,const IR::P4Program* p2)
+    MergeManager()=delete;
+
+    MergeManager(const IR::P4Program* m,const IR::P4Program* p1,const IR::P4Program* p2,IR::ID name,const IR::Type_Parser* type):
+    mergeParser(name,type)
     {
         meta=m;
         program1=p1;
         program2=p2;
+        
+        
+        visitDagOnce = false; 
+        setName("MergeManager");
+        //visited = new visited_t();// because I don't goto  visitor.cpp:142
     }
+    using Inspector::preorder;
     IR::P4Program* run(const CompilerOptions& options);
     bool isSystemFile(cstring file);
     cstring ifSystemFile(const IR::Node* node);
+
+    Visitor::profile_t init_apply(const IR::Node* node) override;
+    void end_apply(const IR::Node* node) override;
+
+    bool preorder(const IR::Type_Struct* t) override;
+    bool preorder(const IR::Type_Header* t) override;
+    //bool preorder(const IR::P4Parser* c) override;
 };
 
 }  // namespace P4
 
-#endif /* _P4_TOP4_TORENAMEP4_H_ */
+#endif /* _EXTENSIONS_P4MERGE_MERGEMANAGER_H_ */

@@ -34,16 +34,18 @@ struct headers {
 }
 
 parser MyParser(packet_in packet, out headers hdr, inout metadata meta, inout standard_metadata_t standard_metadata) {
-    state start {
+    @name("start") state start_0_v1 {
         packet.extract<ethernet_t>(hdr.ethernet);
         transition select(hdr.ethernet.etherType) {
-            16w0x800: parse_ipv4;
+            16w0x800: parse_ipv4_0_v1;
             default: accept;
         }
     }
-    state parse_ipv4 {
+    @name("parse_ipv4") state parse_ipv4_0_v1 {
         packet.extract<ipv4_t>(hdr.ipv4);
         transition accept;
+    }
+    @name("reject") state reject_0_v1 {
     }
 }
 

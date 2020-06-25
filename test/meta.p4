@@ -30,15 +30,15 @@ parser MyParser(packet_in packet,
     state start {
         
         transition select(standard_metadata.ingress_port) {
-            1:start_v1;
-            2:start_v2;
+            1:start_0_v1;
+            2:start_0_v2;
         }
     }
-    state start_v1 {
-        transition accept;
+    state start_0_v1 {
+        
     }
-    state start_v2 {
-        transition accept;
+    state start_0_v2 {
+        
     }
 
 }

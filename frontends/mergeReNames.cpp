@@ -61,7 +61,7 @@ MergeReNames::MergeReNames(ReferenceMap* refMap,const char *p) : renameMap(new M
     CHECK_NULL(refMap);
     passes.emplace_back(new ResolveReferences(refMap));
     passes.emplace_back(new MFindSymbols(refMap, renameMap,p));
-    passes.emplace_back(new MRenameSymbols(refMap, renameMap));
+    passes.emplace_back(new MRenameSymbols(refMap, renameMap,p));
 }
 
 MUniqueParameters::MUniqueParameters(ReferenceMap* refMap, TypeMap* typeMap,const char *p) :
@@ -71,7 +71,7 @@ MUniqueParameters::MUniqueParameters(ReferenceMap* refMap, TypeMap* typeMap,cons
     passes.emplace_back(new TypeChecking(refMap, typeMap));
     passes.emplace_back(new MFindActionCalls(refMap, typeMap, renameMap));
     passes.emplace_back(new MFindParameters(refMap, renameMap,p));
-    passes.emplace_back(new MRenameSymbols(refMap, renameMap));
+    passes.emplace_back(new MRenameSymbols(refMap, renameMap,p));
     passes.emplace_back(new ClearTypeMap(typeMap));
 }
 
@@ -155,5 +155,39 @@ const IR::Node* MRenameSymbols::postorder(IR::P4Action* decl) {
     }
     return decl;
 }
+
+const IR::Node* MRenameSymbols::postorder(IR::ParserState* s) {
+    auto name = getName();
+    if (name != nullptr && *name != s->name) {
+        auto annos = addNameAnnotation(s->name, s->annotations);
+        s->name = *name;
+        s->annotations = annos;
+    }
+    return s;
+}
+
+/*
+const IR::Node* MRenameSymbols::postorder(IR::Type_Header* h) {
+    auto name = getName();
+    if (name != nullptr && *name != h->name) {
+        auto annos = addNameAnnotation(h->name, h->annotations);
+        h->name = *name;
+        h->annotations = annos;
+    }
+    return h;
+}
+
+const IR::Node* MRenameSymbols::postorder(IR::Type_Struct* h) {
+    auto name = getName();
+    if (name != nullptr && *name != h->name) {
+        auto annos = addNameAnnotation(h->name, h->annotations);
+        h->name = *name;
+        h->annotations = annos;
+    }
+    return h;
+}
+
+*/
+
 
 }  // namespace P4

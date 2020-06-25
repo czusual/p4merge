@@ -53,40 +53,186 @@ cstring MergeManager::ifSystemFile(const IR::Node* node) {
     return nullptr;
 }
 
+Visitor::profile_t MergeManager::init_apply(const IR::Node* node) {
+    
+    return Inspector::init_apply(node);
+}
+
+void MergeManager::end_apply(const IR::Node*) {
+    
+}
+
+bool MergeManager::preorder(const IR::Type_Struct* t) {
+    cstring name=t->getName();
+    if(headerName.find(name) == headerName.end()){
+                
+        headerName.emplace(name);
+        result.declarations.push_back(t);
+    }
+    return false;
+}
+bool MergeManager::preorder(const IR::Type_Header* t) {
+    cstring name=t->getName();
+    if(headerName.find(name) == headerName.end()){
+                
+        headerName.emplace(name);
+        result.declarations.push_back(t);
+    }
+    return false;
+}
+
+/*
+bool MergeManager::preorder(IR::P4Parser* c){
+    if(isP1parser){
+        p1parser=c;
+    }
+    else{
+        if(isP2parser){
+            p2parser=c;
+        }
+        else
+        {
+            for (auto p1 : p1parser->states) 
+            {
+                c->states.push_back(p1);
+            }
+            for (auto p2 : p2parser->states) 
+            {
+                c->states.push_back(p2);
+            }
+        } 
+    }
+    return false;
+}
+*/
+
 IR::P4Program* MergeManager::run(const CompilerOptions& options){   //!!now this is rough merge!!
     //bool first=true;
+    //IR::Vector<IR::Node>::iterator itest=result.declarations.begin();
+    std::set<cstring> includesEmitted;
+    
+
+    /* 1 include , typedef*/
     for (auto a : program1->declarations) {
-        // Check where this declaration originates
+        
         cstring sourceFile = ifSystemFile(a);
-        if (!a->is<IR::Type_Error>() &&  // errors can come from multiple files
-            sourceFile != nullptr) {
+        std::cout<<"1"<<a->node_type_name()<<std::endl;
+        if (!a->is<IR::Type_Error>() && sourceFile != nullptr) {
             
-            //#include<a>     
+            if (includesEmitted.find(sourceFile) == includesEmitted.end()) {
+                result.declarations.push_back(a);
+                includesEmitted.emplace(sourceFile);
+            }
             
             continue;
-        }
-        result.declarations.push_back(a);
-        
+        }         
     }
     for (auto a : program2->declarations) {
-        // Check where this declaration originates
+        
         cstring sourceFile = ifSystemFile(a);
-        if (!a->is<IR::Type_Error>() &&  // errors can come from multiple files
+        std::cout<<"2"<<a->node_type_name()<<std::endl;
+        if (!a->is<IR::Type_Error>() &&  
             sourceFile != nullptr) {
             
-            //#include<a>     
+            if (includesEmitted.find(sourceFile) == includesEmitted.end()) {
+                result.declarations.push_back(a);
+                includesEmitted.emplace(sourceFile);
+            }
             
             continue;
         }
-        result.declarations.push_back(a);
+                 
+    }
+    for (auto a : program2->declarations) {
         
+        
+        if (a->is<IR::Type_Typedef>()) {
+            
+            result.declarations.push_back(a);           
+            continue;
+        }
+                 
+    }
+    /* 2 header and struct*/ /*For "header" and "typedef" now is hardcode, because I don't do ''remame'' and vars who have the same name become one*/
+    for (auto a : program2->declarations) {
+        
+        if (a->is<IR::Type_Struct>()||a->is<IR::Type_Header>()) {
+            
+            init_apply(a);
+            visit(a);
+            
+            continue;
+        }         
+    }
+    for (auto a : program1->declarations) {
+        
+        if (a->is<IR::Type_Struct>()||a->is<IR::Type_Header>()) {
+            
+            init_apply(a);
+            visit(a);  
+            
+            continue;
+        }         
+    }
+    /* 3 parser*/
+    //IR::P4Parser* p1parser,p2parser;
+    for (auto a : meta->declarations) {
+        
+        if (a->is<IR::P4Parser>()) {
+            
+            
+            const IR::P4Parser* p1parser=dynamic_cast<const IR::P4Parser*>(a);
+            for(auto p1:p1parser->states)
+            {
+                mergeParser.states.push_back(p1);
+                break;
+            }
+            break;
+        }         
+    }
+
+    for (auto a : program1->declarations) {
+        
+        if (a->is<IR::P4Parser>()) {
+            
+            
+            const IR::P4Parser* p1parser=dynamic_cast<const IR::P4Parser*>(a);
+            for(auto p1:p1parser->states)
+            {
+                mergeParser.states.push_back(p1);
+            }
+            break;
+        }         
+    }
+    for (auto a : program2->declarations) {
+        
+        if (a->is<IR::P4Parser>()) {
+            
+           
+            const IR::P4Parser* p1parser=dynamic_cast<const IR::P4Parser*>(a);
+            for(auto p1:p1parser->states)
+            {
+                mergeParser.states.push_back(p1);
+            }
+            break;
+        }         
+    }
+    result.declarations.push_back(&mergeParser);
+
+    
+
+    /* 4 control*/
+    /* 5 instance*/
+    /* out:toP4*/
+    for (auto a : result.declarations) {
+        std::cout<<a->node_type_name()<<std::endl;              
     }
     cstring fileName="merge_result.p4";
     auto stream = openFile(fileName, true);
     if (stream != nullptr) {
         if (Log::verbose())
             std::cerr << "Writing program to " << fileName << std::endl;
-        P4::ToP4 toP4(stream,false,options.file); //now postFix hardcode,easy to improve by using global var
+        P4::ToP4 toP4(stream,false,options.file); 
         result.apply(toP4);
     }
     return &result;
