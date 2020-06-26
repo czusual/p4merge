@@ -19,8 +19,8 @@ sudo make install
 ## List
 1. Command line interface  √
 2. Top4      √
-3. Rename IR::nodes     *working on*
-4.  Naive merge  *working on*
-5.  Optimize
+3. Rename IR::nodes     *working on more complex conditions*
+4.  Naive merge  √
+5.  Optimize   *working on*
 
 
