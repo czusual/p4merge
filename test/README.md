@@ -3,7 +3,7 @@
 p4merge basic.p4 basic_tunnel.p4
 ```
 
-For now, this command just generate the a rough merged p4 file 
+For now, this command generate a rough merged p4 file 
 
 ```
 p4merge --help
