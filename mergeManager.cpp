@@ -53,6 +53,30 @@ cstring MergeManager::ifSystemFile(const IR::Node* node) {
     return nullptr;
 }
 
+const IR::P4Control * MergeManager::getControl(const IR::P4Program* p,int order){
+    int i=0;
+    for (auto a : p->declarations) {
+               
+        if (a->is<IR::P4Control>()) {
+            
+            if(i==order){
+                return dynamic_cast<const IR::P4Control*>(a);    
+            }
+            i++;
+        }               
+    }
+    return nullptr;
+}
+const IR::P4Parser * MergeManager::getParser(const IR::P4Program* p){
+    for (auto a : p->declarations) { 
+        if (a->is<IR::P4Parser>()) {
+            return dynamic_cast<const IR::P4Parser*>(a); 
+        }
+    }
+    return nullptr;
+}
+
+
 Visitor::profile_t MergeManager::init_apply(const IR::Node* node) {
     
     return Inspector::init_apply(node);
@@ -175,54 +199,79 @@ IR::P4Program* MergeManager::run(const CompilerOptions& options){   //!!now this
         }         
     }
     /* 3 parser*/
-    //IR::P4Parser* p1parser,p2parser;
-    for (auto a : meta->declarations) {
-        
-        if (a->is<IR::P4Parser>()) {
-            
-            
-            const IR::P4Parser* p1parser=dynamic_cast<const IR::P4Parser*>(a);
-            for(auto p1:p1parser->states)
-            {
-                mergeParser.states.push_back(p1);
-                break;
-            }
-            break;
-        }         
+    const IR::P4Parser* metaParser=getParser(meta);
+    const IR::P4Parser* p1Parser=getParser(program1);
+    const IR::P4Parser* p2Parser=getParser(program2);
+    IR::P4Parser mergeParser(metaParser->getName(),metaParser->type);
+    for(auto p0:metaParser->states)
+    {
+        mergeParser.states.push_back(p0);
+        break;
     }
-
-    for (auto a : program1->declarations) {
-        
-        if (a->is<IR::P4Parser>()) {
-            
-            
-            const IR::P4Parser* p1parser=dynamic_cast<const IR::P4Parser*>(a);
-            for(auto p1:p1parser->states)
-            {
-                mergeParser.states.push_back(p1);
-            }
-            break;
-        }         
+    for(auto p1:p1Parser->states)
+    {
+        mergeParser.states.push_back(p1);
     }
-    for (auto a : program2->declarations) {
-        
-        if (a->is<IR::P4Parser>()) {
-            
-           
-            const IR::P4Parser* p1parser=dynamic_cast<const IR::P4Parser*>(a);
-            for(auto p1:p1parser->states)
-            {
-                mergeParser.states.push_back(p1);
-            }
-            break;
-        }         
-    }
+    for(auto p2:p2Parser->states)
+    {
+        mergeParser.states.push_back(p2);
+    }   
     result.declarations.push_back(&mergeParser);
 
     
+    /* 4.0 control checksum*/
+    result.declarations.push_back(getControl(program1,0));
+    /* 4.1 control ingress*/
+    const IR::P4Control* metaControl=getControl(meta,1);
+    const IR::P4Control* p1Control=getControl(program1,1);
+    const IR::P4Control* p2Control=getControl(program2,1);
+    IR::BlockStatement mergeControlBody;
+    IR::BlockStatement mergeControlBody1;
+    IR::BlockStatement mergeControlBody2;
+    for(auto p1:p1Control->body->components)
+    {
+        mergeControlBody1.components.push_back(p1);
+    }
+    for(auto p2:p2Control->body->components)
+    {
+        mergeControlBody2.components.push_back(p2);
+    }
+    IR::IfStatement mergeControlIf1(dynamic_cast<const IR::IfStatement*>(metaControl->body->components[0])->condition,
+        &mergeControlBody1,dynamic_cast<const IR::IfStatement*>(metaControl->body->components[0])->ifFalse);
+    IR::IfStatement mergeControlIf2(dynamic_cast<const IR::IfStatement*>(metaControl->body->components[1])->condition,
+        &mergeControlBody2,dynamic_cast<const IR::IfStatement*>(metaControl->body->components[1])->ifFalse);
+    mergeControlBody.components.push_back(&mergeControlIf1);
+    mergeControlBody.components.push_back(&mergeControlIf2);
+    
+    IR::P4Control mergeControl(metaControl->getName(),metaControl->type,metaControl->getConstructorParameters(),&mergeControlBody);
+    for(auto p1:p1Control->controlLocals)
+    {
+        mergeControl.controlLocals.push_back(p1);
+    }
+    for(auto p2:p2Control->controlLocals)
+    {
+        mergeControl.controlLocals.push_back(p2);
+    }
+   
+    result.declarations.push_back(&mergeControl);
 
-    /* 4 control*/
+    /* 4.2 control egress*/
+    result.declarations.push_back(getControl(program2,2));
+    /* 4.3 control outchecksum*/
+    result.declarations.push_back(getControl(program2,3));
+    /* 4.4 control deparser*/
+    result.declarations.push_back(getControl(program2,4));
     /* 5 instance*/
+    for (auto a : program2->declarations) {
+        
+        
+        if (a->is<IR::Declaration_Instance>()) {
+            
+            result.declarations.push_back(a);           
+            break;
+        }
+                 
+    }
     /* out:toP4*/
     for (auto a : result.declarations) {
         std::cout<<a->node_type_name()<<std::endl;              

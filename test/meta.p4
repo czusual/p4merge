@@ -59,7 +59,25 @@ control MyVerifyChecksum(inout headers hdr, inout metadata meta) {
 control MyIngress(inout headers hdr,
                   inout metadata meta,
                   inout standard_metadata_t standard_metadata) {
+    table ipv4_lpm {
+        key = {
+           
+        }
+        actions = {
+            NoAction;
+        }
+        size = 1024;
+    }
+
     apply {
+        if(standard_metadata.ingress_port==1)
+        {
+            ipv4_lpm.apply();
+        }
+        if(standard_metadata.ingress_port==2)
+        {
+            ipv4_lpm.apply();
+        }
        
     }
 }

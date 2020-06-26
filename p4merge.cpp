@@ -232,15 +232,8 @@ int main(int argc, char *const argv[]) {
  
     /*2.0 Merge*/
     
-    for (auto a : program0->declarations) { 
-            if (a->is<IR::P4Parser>()) {
-                const IR::P4Parser* pmeta =dynamic_cast<const IR::P4Parser*>(a);
-                //const IR::Type_Parser* type = nullptr;
-                P4::MergeManager merging(program0,program1,program2,pmeta->getName(),pmeta->type);
-                merging.run(options0);
-                break;
-            }
-        }
+    P4::MergeManager merging(program0,program1,program2);
+    merging.run(options0);
     
 
 

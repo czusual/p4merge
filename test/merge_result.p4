@@ -82,3 +82,107 @@ parser MyParser(packet_in packet, out headers hdr, inout metadata meta, inout st
     }
 }
 
+control MyVerifyChecksum(inout headers hdr, inout metadata meta) {
+    apply {
+    }
+}
+
+control MyIngress(inout headers hdr, inout metadata meta, inout standard_metadata_t standard_metadata) {
+    @name(".NoAction") action NoAction_1_v1() {
+    }
+    @name("MyIngress.drop") action drop_1_v1() {
+        mark_to_drop();
+    }
+    @name("MyIngress.ipv4_forward") action ipv4_forward_v1(macAddr_t dstAddr, egressSpec_t port) {
+        standard_metadata.egress_spec = port;
+        hdr.ethernet.srcAddr = hdr.ethernet.dstAddr;
+        hdr.ethernet.dstAddr = dstAddr;
+        hdr.ipv4.ttl = hdr.ipv4.ttl + 8w255;
+    }
+    @name("MyIngress.ipv4_lpm") table ipv4_lpm_0_v1 {
+        key = {
+            hdr.ipv4.dstAddr: lpm @name("hdr.ipv4.dstAddr") ;
+        }
+        actions = {
+            ipv4_forward_v1();
+            drop_1_v1();
+            NoAction_1_v1();
+        }
+        size = 1024;
+        default_action = drop_1_v1();
+    }
+    @name(".NoAction") action NoAction_1_v2() {
+    }
+    @name("MyIngress.drop") action drop_1_v2() {
+        mark_to_drop();
+    }
+    @name("MyIngress.drop") action drop_2_v2() {
+        mark_to_drop();
+    }
+    @name("MyIngress.ipv4_forward") action ipv4_forward_v2(macAddr_t dstAddr, egressSpec_t port) {
+        standard_metadata.egress_spec = port;
+        hdr.ethernet.srcAddr = hdr.ethernet.dstAddr;
+        hdr.ethernet.dstAddr = dstAddr;
+        hdr.ipv4.ttl = hdr.ipv4.ttl + 8w255;
+    }
+    @name("MyIngress.ipv4_lpm") table ipv4_lpm_0_v2 {
+        key = {
+            hdr.ipv4.dstAddr: lpm @name("hdr.ipv4.dstAddr") ;
+        }
+        actions = {
+            ipv4_forward_v2();
+            drop_1_v2();
+            NoAction_1_v2();
+        }
+        size = 1024;
+        default_action = drop_1_v2();
+    }
+    @name("MyIngress.myTunnel_forward") action myTunnel_forward_v2(egressSpec_t port) {
+        standard_metadata.egress_spec = port;
+    }
+    @name("MyIngress.myTunnel_exact") table myTunnel_exact_0_v2 {
+        key = {
+            hdr.myTunnel.dst_id: exact @name("hdr.myTunnel.dst_id") ;
+        }
+        actions = {
+            myTunnel_forward_v2();
+            drop_2_v2();
+        }
+        size = 1024;
+        default_action = drop_2_v2();
+    }
+    apply {
+        if (standard_metadata.ingress_port == 9w1) {
+            if (hdr.ipv4.isValid()) 
+                ipv4_lpm_0_v1.apply();
+        }
+        if (standard_metadata.ingress_port == 9w2) {
+            if (hdr.ipv4.isValid() && !hdr.myTunnel.isValid()) 
+                ipv4_lpm_0_v2.apply();
+            if (hdr.myTunnel.isValid()) 
+                myTunnel_exact_0_v2.apply();
+        }
+    }
+}
+
+control MyEgress(inout headers hdr, inout metadata meta, inout standard_metadata_t standard_metadata) {
+    apply {
+    }
+}
+
+control MyComputeChecksum(inout headers hdr, inout metadata meta) {
+    apply {
+        update_checksum<tuple<bit<4>, bit<4>, bit<8>, bit<16>, bit<16>, bit<3>, bit<13>, bit<8>, bit<8>, bit<32>, bit<32>>, bit<16>>(hdr.ipv4.isValid(), { hdr.ipv4.version, hdr.ipv4.ihl, hdr.ipv4.diffserv, hdr.ipv4.totalLen, hdr.ipv4.identification, hdr.ipv4.flags, hdr.ipv4.fragOffset, hdr.ipv4.ttl, hdr.ipv4.protocol, hdr.ipv4.srcAddr, hdr.ipv4.dstAddr }, hdr.ipv4.hdrChecksum, HashAlgorithm.csum16);
+    }
+}
+
+control MyDeparser(packet_out packet, in headers hdr) {
+    apply {
+        packet.emit<ethernet_t>(hdr.ethernet);
+        packet.emit<myTunnel_t>(hdr.myTunnel);
+        packet.emit<ipv4_t>(hdr.ipv4);
+    }
+}
+
+V1Switch<headers, metadata>(MyParser(), MyVerifyChecksum(), MyIngress(), MyEgress(), MyComputeChecksum(), MyDeparser()) main;
+

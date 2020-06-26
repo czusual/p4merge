@@ -31,22 +31,16 @@ class MergeManager : public Inspector{
     IR::P4Program result;
     //std::map<const IR::Node*, cstring> headerName;
     std::set<cstring> headerName;
-    //IR::P4Parser* p1parser=nullptr;
-    //IR::P4Parser* p2parser=nullptr;
-    IR::P4Parser mergeParser;
-    bool isP1parser=false;
-    bool isP2parser=false;
+    
 
 public:
     MergeManager()=delete;
 
-    MergeManager(const IR::P4Program* m,const IR::P4Program* p1,const IR::P4Program* p2,IR::ID name,const IR::Type_Parser* type):
-    mergeParser(name,type)
+    MergeManager(const IR::P4Program* m,const IR::P4Program* p1,const IR::P4Program* p2)   
     {
         meta=m;
         program1=p1;
-        program2=p2;
-        
+        program2=p2;     
         
         visitDagOnce = false; 
         setName("MergeManager");
@@ -56,6 +50,9 @@ public:
     IR::P4Program* run(const CompilerOptions& options);
     bool isSystemFile(cstring file);
     cstring ifSystemFile(const IR::Node* node);
+
+    const IR::P4Control * getControl(const IR::P4Program* p,int order);
+    const IR::P4Parser * getParser(const IR::P4Program* p);
 
     Visitor::profile_t init_apply(const IR::Node* node) override;
     void end_apply(const IR::Node* node) override;
