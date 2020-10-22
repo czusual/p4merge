@@ -4,6 +4,10 @@
 typedef bit<9> egressSpec_t;
 typedef bit<48> macAddr_t;
 typedef bit<32> ip4Addr_t;
+header vlan_t {
+    bit<4> vlanid;
+}
+
 header ethernet_t {
     macAddr_t dstAddr;
     macAddr_t srcAddr;
@@ -34,6 +38,7 @@ struct metadata {
 }
 
 struct headers {
+    vlan_t     vlan;
     ethernet_t ethernet;
     myTunnel_t myTunnel;
     ipv4_t     ipv4;
@@ -41,9 +46,10 @@ struct headers {
 
 parser MyParser(packet_in packet, out headers hdr, inout metadata meta, inout standard_metadata_t standard_metadata) {
     state start {
-        transition select(standard_metadata.ingress_port) {
-            9w1: start_0_v1;
-            9w2: start_0_v2;
+        packet.extract<vlan_t>(hdr.vlan);
+        transition select(hdr.vlan.vlanid) {
+            4w1: start_0_v1;
+            4w2: start_0_v2;
         }
     }
     @name("start") state start_0_v1 {

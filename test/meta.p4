@@ -7,14 +7,16 @@
 /*************************************************************************
 *********************** H E A D E R S  ***********************************
 *************************************************************************/
-
+header vlan_t {
+    bit<4>   vlanid;
+}
 
 struct metadata {
     /* empty */
 }
 
 struct headers {
-    /* empty */
+    vlan_t       vlan;
 }
 
 
@@ -29,7 +31,8 @@ parser MyParser(packet_in packet,
 
     state start {
         
-        transition select(standard_metadata.ingress_port) {
+        packet.extract(hdr.vlan);
+        transition select(hdr.vlan.vlanid) {
             1:start_0_v1;
             2:start_0_v2;
         }

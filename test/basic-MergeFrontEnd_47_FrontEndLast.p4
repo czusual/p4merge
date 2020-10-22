@@ -4,6 +4,10 @@
 typedef bit<9> egressSpec_t;
 typedef bit<48> macAddr_t;
 typedef bit<32> ip4Addr_t;
+header vlan_t {
+    bit<4> vlanid;
+}
+
 header ethernet_t {
     macAddr_t dstAddr;
     macAddr_t srcAddr;
@@ -29,6 +33,7 @@ struct metadata {
 }
 
 struct headers {
+    vlan_t     vlan;
     ethernet_t ethernet;
     ipv4_t     ipv4;
 }
