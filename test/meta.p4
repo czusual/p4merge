@@ -73,11 +73,11 @@ control MyIngress(inout headers hdr,
     }
 
     apply {
-        if(standard_metadata.ingress_port==1)
+        if(hdr.vlan.vlanid==1)
         {
             ipv4_lpm.apply();
         }
-        if(standard_metadata.ingress_port==2)
+        if(hdr.vlan.vlanid==2)
         {
             ipv4_lpm.apply();
         }

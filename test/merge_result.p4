@@ -158,11 +158,11 @@ control MyIngress(inout headers hdr, inout metadata meta, inout standard_metadat
         default_action = drop_2_v2();
     }
     apply {
-        if (standard_metadata.ingress_port == 9w1) {
+        if (hdr.vlan.vlanid == 4w1) {
             if (hdr.ipv4.isValid()) 
                 ipv4_lpm_0_v1.apply();
         }
-        if (standard_metadata.ingress_port == 9w2) {
+        if (hdr.vlan.vlanid == 4w2) {
             if (hdr.ipv4.isValid() && !hdr.myTunnel.isValid()) 
                 ipv4_lpm_0_v2.apply();
             if (hdr.myTunnel.isValid()) 
