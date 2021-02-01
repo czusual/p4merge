@@ -7,18 +7,37 @@
 /*************************************************************************
 *********************** H E A D E R S  ***********************************
 *************************************************************************/
-header vlan_t {
-    bit<4>   vlanid;
+const bit<16> TYPE_IPV4 = 0x8100;
+const bit<16> TYPE_tunnel = 0x8200;
+const bit<12> USER1 = 0x1;
+const bit<12> USER2 = 0x2;
+
+typedef bit<9> egressSpec_t;
+typedef bit<48> macAddr_t;
+typedef bit<32> ip4Addr_t;
+
+header ethernet_t {
+    macAddr_t dstAddr;
+    macAddr_t srcAddr;
+    bit<16>   etherType;
 }
 
+header vlan_t {
+    bit<3> pcp;
+    bit<1> cfi;
+    bit<12> vlanid;
+    bit<16> ether_type;
+}
+
+
+
 struct metadata {
-    /* empty */
 }
 
 struct headers {
-    vlan_t       vlan;
+    ethernet_t ethernet;
+	vlan_t     vlan;
 }
-
 
 /*************************************************************************
 *********************** P A R S E R  ***********************************
@@ -31,16 +50,21 @@ parser MyParser(packet_in packet,
 
     state start {
         
-        packet.extract(hdr.vlan);
-        transition select(hdr.vlan.vlanid) {
-            1:start_0_v1;
-            2:start_0_v2;
-        }
-    }
-    state start_0_v1 {
+        packet.extract(hdr.ethernet);
+        transition parse_vlan;
         
     }
-    state start_0_v2 {
+    state parse_vlan{
+        packet.extract(hdr.vlan);
+        transition select(hdr.vlan.vlanid) {
+            USER1:parse_vlan_0_v1;
+            USER2:parse_vlan_0_v2;
+        }
+    }
+    state parse_vlan_0_v1 {
+        
+    }
+    state parse_vlan_0_v2 {
         
     }
 
@@ -73,11 +97,11 @@ control MyIngress(inout headers hdr,
     }
 
     apply {
-        if(hdr.vlan.vlanid==1)
+        if(hdr.vlan.vlanid==USER1)
         {
             ipv4_lpm.apply();
         }
-        if(hdr.vlan.vlanid==2)
+        if(hdr.vlan.vlanid==USER2)
         {
             ipv4_lpm.apply();
         }

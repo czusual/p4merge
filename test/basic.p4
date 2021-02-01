@@ -12,13 +12,17 @@ typedef bit<9>  egressSpec_t;
 typedef bit<48> macAddr_t;
 typedef bit<32> ip4Addr_t;
 
-header vlan_t {
-    bit<4>   vlanid;
-}
+
 header ethernet_t {
     macAddr_t dstAddr;
     macAddr_t srcAddr;
     bit<16>   etherType;
+}
+header vlan_t {
+    bit<3> pcp;
+    bit<1> cfi;
+    bit<12> vlanid;
+    bit<16> ether_type;
 }
 
 header ipv4_t {
@@ -41,8 +45,8 @@ struct metadata {
 }
 
 struct headers {
-    vlan_t       vlan;
     ethernet_t   ethernet;
+    vlan_t       vlan;
     ipv4_t       ipv4;
 }
 
@@ -62,6 +66,14 @@ parser MyParser(packet_in packet,
     state parse_ethernet {
         packet.extract(hdr.ethernet);
         transition select(hdr.ethernet.etherType) {
+            TYPE_IPV4: parse_vlan;
+            default: accept;
+        }
+        
+    }
+    state parse_vlan {
+        packet.extract(hdr.vlan);
+        transition select(hdr.vlan.ether_type) {
             TYPE_IPV4: parse_ipv4;
             default: accept;
         }
@@ -162,6 +174,7 @@ control MyComputeChecksum(inout headers  hdr, inout metadata meta) {
 control MyDeparser(packet_out packet, in headers hdr) {
     apply {
         packet.emit(hdr.ethernet);
+        packet.emit(hdr.vlan);
         packet.emit(hdr.ipv4);
     }
 }

@@ -147,9 +147,9 @@ bool ToP4::preorder(const IR::P4Program* program) {
 
     bool first = true;
     dump(2);
-    //------------------------------------------Zoe
+    //
     mergeRenameFile.open("MergeRenameList.txt");
-    //------------------------------------------Zoe
+    //
 
     for (auto a : program->declarations) {
         // Check where this declaration originates
@@ -185,10 +185,10 @@ bool ToP4::preorder(const IR::P4Program* program) {
         first = false;
         visit(a);
     }
-    //------------------------------------------Zoe
+    //
     mergeRenameFile.close();
-    //------------------------------------------Zoe
-
+    //
+    
     if (!program->declarations.empty())
         builder.newline();
     return false;
@@ -323,7 +323,7 @@ bool ToP4::preorder(const IR::TypeParameters* t) {
 
 bool ToP4::preorder(const IR::Method* m) {
     dump(1);
-    visit(m->annotations);
+    //visit(m->annotations);
     const Context* ctx = getContext();
     bool standaloneFunction = !ctx || !ctx->node->is<IR::Type_Extern>();
     // standalone function declaration: not in a Vector of methods
@@ -364,7 +364,7 @@ bool ToP4::preorder(const IR::Function* function) {
 
 bool ToP4::preorder(const IR::Type_Extern* t) {
     dump(2);
-    visit(t->annotations);
+    //visit(t->annotations);
     builder.append("extern ");
     builder.append(t->name);
     visit(t->typeParameters);
@@ -398,7 +398,7 @@ bool ToP4::preorder(const IR::Type_Varbits* t) {
 bool ToP4::preorder(const IR::Type_Package* package) {
     dump(2);
     builder.emitIndent();
-    visit(package->annotations);
+    //visit(package->annotations);
     builder.append("package ");
     builder.append(package->name);
     visit(package->typeParameters);
@@ -410,7 +410,7 @@ bool ToP4::preorder(const IR::Type_Package* package) {
 bool ToP4::process(const IR::Type_StructLike* t, const char* name) {
     dump(2);
     builder.emitIndent();
-    visit(t->annotations);
+    //visit(t->annotations);
     builder.appendFormat("%s ", name);
     builder.append(t->name);
     builder.spc();
@@ -433,7 +433,7 @@ bool ToP4::process(const IR::Type_StructLike* t, const char* name) {
         dump(4, f, 1);  // this will dump annotations
         if (f->annotations->size() > 0) {
             builder.emitIndent();
-            visit(f->annotations);
+            //visit(f->annotations);
             builder.newline();
         }
         builder.emitIndent();
@@ -452,7 +452,7 @@ bool ToP4::process(const IR::Type_StructLike* t, const char* name) {
 bool ToP4::preorder(const IR::Type_Parser* t) {
     dump(2);
     builder.emitIndent();
-    visit(t->annotations);
+    //visit(t->annotations);
     builder.append("parser ");
     builder.append(t->name);
     visit(t->typeParameters);
@@ -464,7 +464,7 @@ bool ToP4::preorder(const IR::Type_Parser* t) {
 bool ToP4::preorder(const IR::Type_Control* t) {
     dump(2);
     builder.emitIndent();
-    visit(t->annotations);
+    //visit(t->annotations);
     builder.append("control ");
     builder.append(t->name);
     visit(t->typeParameters);
@@ -519,7 +519,7 @@ bool ToP4::preorder(const IR::StringLiteral* s) {
 
 bool ToP4::preorder(const IR::Declaration_Constant* cst) {
     dump(2);
-    visit(cst->annotations);
+    //visit(cst->annotations);
     builder.append("const ");
     auto type = cst->type->getP4Type();
     CHECK_NULL(type);
@@ -538,7 +538,7 @@ bool ToP4::preorder(const IR::Declaration_Constant* cst) {
 
 bool ToP4::preorder(const IR::Declaration_Instance* i) {
     dump(3);
-    visit(i->annotations);
+    //visit(i->annotations);
     auto type = i->type->getP4Type();
     CHECK_NULL(type);
     visit(type);
@@ -559,7 +559,7 @@ bool ToP4::preorder(const IR::Declaration_Instance* i) {
 
 bool ToP4::preorder(const IR::Declaration_Variable* v) {
     dump(1);
-    visit(v->annotations);
+    //visit(v->annotations);
     auto type = v->type->getP4Type();
     CHECK_NULL(type);
     visit(type);
@@ -907,7 +907,7 @@ bool ToP4::preorder(const IR::AssignmentStatement* a) {
 
 bool ToP4::preorder(const IR::BlockStatement* s) {
     dump(1);
-    visit(s->annotations);
+    //visit(s->annotations);
     builder.blockStart();
     setVecSep("\n", "\n");
     preorder(&s->components);
@@ -1014,7 +1014,7 @@ bool ToP4::preorder(const IR::Annotation * a) {
 
 bool ToP4::preorder(const IR::Parameter* p) {
     dump(2);
-    visit(p->annotations);
+    //visit(p->annotations);
     switch (p->direction) {
         case IR::Direction::None:
             break;
@@ -1075,7 +1075,7 @@ bool ToP4::preorder(const IR::ParameterList* p) {
 
 bool ToP4::preorder(const IR::P4Action * c) {
     dump(2);
-    visit(c->annotations);
+    //visit(c->annotations);
     builder.append("action ");
     builder.append(c->name);
     visit(c->parameters);
@@ -1088,7 +1088,7 @@ bool ToP4::preorder(const IR::ParserState* s) {
     dump(1);
     if (s->isBuiltin()) return false;
 
-    visit(s->annotations);
+    //visit(s->annotations);
     builder.append("state ");
     builder.append(s->name);
     builder.spc();
@@ -1144,7 +1144,7 @@ bool ToP4::preorder(const IR::ExpressionValue* v) {
 
 bool ToP4::preorder(const IR::ActionListElement* ale) {
     dump(3);
-    visit(ale->annotations);
+    //visit(ale->annotations);
     visit(ale->expression);
     return false;
 }
@@ -1187,7 +1187,7 @@ bool ToP4::preorder(const IR::Key* v) {
         visit(f->matchType);
         if (f->annotations->size() != 0) {
             builder.append(" ");
-            visit(f->annotations);
+            //visit(f->annotations);
         }
         builder.endOfStatement(true);
     }
@@ -1197,7 +1197,7 @@ bool ToP4::preorder(const IR::Key* v) {
 
 bool ToP4::preorder(const IR::Property* p) {
     dump(1);
-    visit(p->annotations);
+    //visit(p->annotations);
     if (p->isConstant)
         builder.append("const ");
     builder.append(p->name);
@@ -1238,7 +1238,7 @@ bool ToP4::preorder(const IR::Entry *e) {
     visit(e->keys);
     builder.append(" : ");
     visit(e->action);
-    visit(e->annotations);
+    //visit(e->annotations);
     builder.append(";");
     builder.newline();
     return false;
@@ -1246,7 +1246,7 @@ bool ToP4::preorder(const IR::Entry *e) {
 
 bool ToP4::preorder(const IR::P4Table* c) {
     dump(2);
-    visit(c->annotations);
+    //visit(c->annotations);
     builder.append("table ");
     builder.append(c->name);
 //Zoe

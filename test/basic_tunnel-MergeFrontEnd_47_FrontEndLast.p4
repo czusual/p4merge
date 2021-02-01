@@ -4,14 +4,17 @@
 typedef bit<9> egressSpec_t;
 typedef bit<48> macAddr_t;
 typedef bit<32> ip4Addr_t;
-header vlan_t {
-    bit<4> vlanid;
-}
-
 header ethernet_t {
     macAddr_t dstAddr;
     macAddr_t srcAddr;
     bit<16>   etherType;
+}
+
+header vlan_t {
+    bit<3>  pcp;
+    bit<1>  cfi;
+    bit<12> vlanid;
+    bit<16> ether_type;
 }
 
 header myTunnel_t {
@@ -38,33 +41,40 @@ struct metadata {
 }
 
 struct headers {
-    vlan_t     vlan;
     ethernet_t ethernet;
+    vlan_t     vlan;
     myTunnel_t myTunnel;
     ipv4_t     ipv4;
 }
 
 parser MyParser(packet_in packet, out headers hdr, inout metadata meta, inout standard_metadata_t standard_metadata) {
-    @name("start") state start_0_v2 {
+    state start_0_v2 {
         packet.extract<ethernet_t>(hdr.ethernet);
         transition select(hdr.ethernet.etherType) {
+            16w0x800: parse_vlan_0_v2;
+            default: accept;
+        }
+    }
+    state parse_vlan_0_v2 {
+        packet.extract<vlan_t>(hdr.vlan);
+        transition select(hdr.vlan.ether_type) {
             16w0x1212: parse_myTunnel_0_v2;
             16w0x800: parse_ipv4_0_v2;
             default: accept;
         }
     }
-    @name("parse_myTunnel") state parse_myTunnel_0_v2 {
+    state parse_myTunnel_0_v2 {
         packet.extract<myTunnel_t>(hdr.myTunnel);
         transition select(hdr.myTunnel.proto_id) {
             16w0x800: parse_ipv4_0_v2;
             default: accept;
         }
     }
-    @name("parse_ipv4") state parse_ipv4_0_v2 {
+    state parse_ipv4_0_v2 {
         packet.extract<ipv4_t>(hdr.ipv4);
         transition accept;
     }
-    @name("reject") state reject_0_v2 {
+    state reject_0_v2 {
     }
 }
 
@@ -74,23 +84,23 @@ control MyVerifyChecksum(inout headers hdr, inout metadata meta) {
 }
 
 control MyIngress(inout headers hdr, inout metadata meta, inout standard_metadata_t standard_metadata) {
-    @name(".NoAction") action NoAction_1_v2() {
+    action NoAction_1_v2() {
     }
-    @name("MyIngress.drop") action drop_1_v2() {
+    action drop_1_v2() {
         mark_to_drop();
     }
-    @name("MyIngress.drop") action drop_2_v2() {
+    action drop_2_v2() {
         mark_to_drop();
     }
-    @name("MyIngress.ipv4_forward") action ipv4_forward_v2(macAddr_t dstAddr, egressSpec_t port) {
+    action ipv4_forward_v2(macAddr_t dstAddr, egressSpec_t port) {
         standard_metadata.egress_spec = port;
         hdr.ethernet.srcAddr = hdr.ethernet.dstAddr;
         hdr.ethernet.dstAddr = dstAddr;
         hdr.ipv4.ttl = hdr.ipv4.ttl + 8w255;
     }
-    @name("MyIngress.ipv4_lpm") table ipv4_lpm_0_v2 {
+    table ipv4_lpm_0_v2 {
         key = {
-            hdr.ipv4.dstAddr: lpm @name("hdr.ipv4.dstAddr") ;
+            hdr.ipv4.dstAddr: lpm ;
         }
         actions = {
             ipv4_forward_v2();
@@ -100,12 +110,12 @@ control MyIngress(inout headers hdr, inout metadata meta, inout standard_metadat
         size = 1024;
         default_action = drop_1_v2();
     }
-    @name("MyIngress.myTunnel_forward") action myTunnel_forward_v2(egressSpec_t port) {
+    action myTunnel_forward_v2(egressSpec_t port) {
         standard_metadata.egress_spec = port;
     }
-    @name("MyIngress.myTunnel_exact") table myTunnel_exact_0_v2 {
+    table myTunnel_exact_0_v2 {
         key = {
-            hdr.myTunnel.dst_id: exact @name("hdr.myTunnel.dst_id") ;
+            hdr.myTunnel.dst_id: exact ;
         }
         actions = {
             myTunnel_forward_v2();
@@ -136,6 +146,7 @@ control MyComputeChecksum(inout headers hdr, inout metadata meta) {
 control MyDeparser(packet_out packet, in headers hdr) {
     apply {
         packet.emit<ethernet_t>(hdr.ethernet);
+        packet.emit<vlan_t>(hdr.vlan);
         packet.emit<myTunnel_t>(hdr.myTunnel);
         packet.emit<ipv4_t>(hdr.ipv4);
     }
