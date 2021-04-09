@@ -130,7 +130,7 @@ bool MergeManager::preorder(IR::P4Parser* c){
 }
 */
 
-IR::P4Program* MergeManager::run(const CompilerOptions& options){   //!!now this is rough merge!!
+IR::P4Program* MergeManager::run(const CompilerOptions& options,bool secondRound){   //!!now this is rough merge!!
     //bool first=true;
     //IR::Vector<IR::Node>::iterator itest=result.declarations.begin();
     std::set<cstring> includesEmitted;
@@ -203,18 +203,35 @@ IR::P4Program* MergeManager::run(const CompilerOptions& options){   //!!now this
     const IR::P4Parser* p1Parser=getParser(program1);
     const IR::P4Parser* p2Parser=getParser(program2);
     IR::P4Parser mergeParser(metaParser->getName(),metaParser->type);
+    int i=0;
     for(auto p0:metaParser->states)
     {
         mergeParser.states.push_back(p0);
         break;
+
     }
+    int startstate=1;
+    if(secondRound){
+         startstate=1;
+    }
+    i=0;  
     for(auto p1:p1Parser->states)
     {
-        mergeParser.states.push_back(p1);
+        ++i;
+        
+        if(i>startstate){
+            mergeParser.states.push_back(p1);
+        }
+        
     }
+    i=0;
     for(auto p2:p2Parser->states)
     {
-        mergeParser.states.push_back(p2);
+         ++i;
+        
+        if(i>startstate){
+            mergeParser.states.push_back(p2);
+        }
     }   
     result.declarations.push_back(&mergeParser);
 
@@ -277,6 +294,11 @@ IR::P4Program* MergeManager::run(const CompilerOptions& options){   //!!now this
         std::cout<<a->node_type_name()<<std::endl;              
     }
     cstring fileName="merge_result.p4";
+
+    if(secondRound){                                  ////////////////////////////////
+        fileName="merge_result_2.p4";
+    }
+    
     auto stream = openFile(fileName, true);
     if (stream != nullptr) {
         if (Log::verbose())

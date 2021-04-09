@@ -47,7 +47,7 @@ public:
         //visited = new visited_t();// because I don't goto  visitor.cpp:142
     }
     using Inspector::preorder;
-    IR::P4Program* run(const CompilerOptions& options);
+    IR::P4Program* run(const CompilerOptions& options,bool secondRound);
     bool isSystemFile(cstring file);
     cstring ifSystemFile(const IR::Node* node);
 

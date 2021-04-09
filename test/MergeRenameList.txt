@@ -1,3 +1,5 @@
-ipv4_lpm ipv4_lpm_0_v1
+ipv4_lpm_0_v1 ipv4_lpm_0_v1_0_v1
+ipv4_lpm_0_v2 ipv4_lpm_0_v2_0_v1
+myTunnel_exact_0_v2 myTunnel_exact_0_v2_0_v1
 ipv4_lpm ipv4_lpm_0_v2
 myTunnel_exact myTunnel_exact_0_v2

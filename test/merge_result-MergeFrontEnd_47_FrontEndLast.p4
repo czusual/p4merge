@@ -48,47 +48,45 @@ struct headers {
 }
 
 parser MyParser(packet_in packet, out headers hdr, inout metadata meta, inout standard_metadata_t standard_metadata) {
-    state start {
+    state start_0_v1 {
         packet.extract<ethernet_t>(hdr.ethernet);
         packet.extract<vlan_t>(hdr.vlan);
         transition select(hdr.vlan.vlanid) {
-            12w0x1: parse_vlan_0_v1;
-            12w0x2: parse_vlan_0_v2;
+            12w0x1: parse_vlan_0_v1_0_v1;
+            12w0x2: parse_vlan_0_v2_0_v1;
         }
     }
-    state parse_vlan_0_v1 {
+    state parse_vlan_0_v1_0_v1 {
         packet.extract<vlan_t>(hdr.vlan);
         transition select(hdr.vlan.ether_type) {
-            16w0x800: parse_ipv4_0_v1;
+            16w0x800: parse_ipv4_0_v1_0_v1;
             default: accept;
         }
     }
-    state parse_ipv4_0_v1 {
+    state parse_ipv4_0_v1_0_v1 {
+        packet.extract<ipv4_t>(hdr.ipv4);
+        transition accept;
+    }
+    state parse_vlan_0_v2_0_v1 {
+        packet.extract<vlan_t>(hdr.vlan);
+        transition select(hdr.vlan.ether_type) {
+            16w0x1212: parse_myTunnel_0_v2_0_v1;
+            16w0x800: parse_ipv4_0_v2_0_v1;
+            default: accept;
+        }
+    }
+    state parse_myTunnel_0_v2_0_v1 {
+        packet.extract<myTunnel_t>(hdr.myTunnel);
+        transition select(hdr.myTunnel.proto_id) {
+            16w0x800: parse_ipv4_0_v2_0_v1;
+            default: accept;
+        }
+    }
+    state parse_ipv4_0_v2_0_v1 {
         packet.extract<ipv4_t>(hdr.ipv4);
         transition accept;
     }
     state reject_0_v1 {
-    }
-    state parse_vlan_0_v2 {
-        packet.extract<vlan_t>(hdr.vlan);
-        transition select(hdr.vlan.ether_type) {
-            16w0x1212: parse_myTunnel_0_v2;
-            16w0x800: parse_ipv4_0_v2;
-            default: accept;
-        }
-    }
-    state parse_myTunnel_0_v2 {
-        packet.extract<myTunnel_t>(hdr.myTunnel);
-        transition select(hdr.myTunnel.proto_id) {
-            16w0x800: parse_ipv4_0_v2;
-            default: accept;
-        }
-    }
-    state parse_ipv4_0_v2 {
-        packet.extract<ipv4_t>(hdr.ipv4);
-        transition accept;
-    }
-    state reject_0_v2 {
     }
 }
 
@@ -98,79 +96,78 @@ control MyVerifyChecksum(inout headers hdr, inout metadata meta) {
 }
 
 control MyIngress(inout headers hdr, inout metadata meta, inout standard_metadata_t standard_metadata) {
-    action NoAction_1_v1() {
+    action NoAction_1_v1_v1() {
     }
-    action drop_1_v1() {
+    action drop_1_v1_v1() {
         mark_to_drop();
     }
-    action ipv4_forward_v1(macAddr_t dstAddr, egressSpec_t port) {
+    action ipv4_forward_v1_v1(macAddr_t dstAddr, egressSpec_t port) {
         standard_metadata.egress_spec = port;
         hdr.ethernet.srcAddr = hdr.ethernet.dstAddr;
         hdr.ethernet.dstAddr = dstAddr;
         hdr.ipv4.ttl = hdr.ipv4.ttl + 8w255;
     }
-    table ipv4_lpm_0_v1 {
+    table ipv4_lpm_0_v1_0_v1 {
         key = {
             hdr.ipv4.dstAddr: lpm ;
         }
         actions = {
-            ipv4_forward_v1();
-            drop_1_v1();
-            NoAction_1_v1();
+            ipv4_forward_v1_v1();
+            drop_1_v1_v1();
+            NoAction_1_v1_v1();
         }
         size = 1024;
-        default_action = drop_1_v1();
+        default_action = drop_1_v1_v1();
     }
-    action NoAction_1_v2() {
+    action NoAction_1_v2_v1() {
     }
-    action drop_1_v2() {
+    action drop_1_v2_v1() {
         mark_to_drop();
     }
-    action drop_2_v2() {
+    action drop_2_v2_v1() {
         mark_to_drop();
     }
-    action ipv4_forward_v2(macAddr_t dstAddr, egressSpec_t port) {
+    action ipv4_forward_v2_v1(macAddr_t dstAddr, egressSpec_t port) {
         standard_metadata.egress_spec = port;
         hdr.ethernet.srcAddr = hdr.ethernet.dstAddr;
         hdr.ethernet.dstAddr = dstAddr;
         hdr.ipv4.ttl = hdr.ipv4.ttl + 8w255;
     }
-    table ipv4_lpm_0_v2 {
+    table ipv4_lpm_0_v2_0_v1 {
         key = {
             hdr.ipv4.dstAddr: lpm ;
         }
         actions = {
-            ipv4_forward_v2();
-            drop_1_v2();
-            NoAction_1_v2();
+            ipv4_forward_v2_v1();
+            drop_1_v2_v1();
+            NoAction_1_v2_v1();
         }
         size = 1024;
-        default_action = drop_1_v2();
+        default_action = drop_1_v2_v1();
     }
-    action myTunnel_forward_v2(egressSpec_t port) {
+    action myTunnel_forward_v2_v1(egressSpec_t port) {
         standard_metadata.egress_spec = port;
     }
-    table myTunnel_exact_0_v2 {
+    table myTunnel_exact_0_v2_0_v1 {
         key = {
             hdr.myTunnel.dst_id: exact ;
         }
         actions = {
-            myTunnel_forward_v2();
-            drop_2_v2();
+            myTunnel_forward_v2_v1();
+            drop_2_v2_v1();
         }
         size = 1024;
-        default_action = drop_2_v2();
+        default_action = drop_2_v2_v1();
     }
     apply {
-        if (hdr.vlan.vlanid == 12w0x1) {
+        if (hdr.vlan.vlanid == 12w0x1) 
             if (hdr.ipv4.isValid()) 
-                ipv4_lpm_0_v1.apply();
-        }
+                ipv4_lpm_0_v1_0_v1.apply();
         if (hdr.vlan.vlanid == 12w0x2) {
             if (hdr.ipv4.isValid() && !hdr.myTunnel.isValid()) 
-                ipv4_lpm_0_v2.apply();
+                ipv4_lpm_0_v2_0_v1.apply();
             if (hdr.myTunnel.isValid()) 
-                myTunnel_exact_0_v2.apply();
+                myTunnel_exact_0_v2_0_v1.apply();
         }
     }
 }

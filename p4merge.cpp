@@ -44,6 +44,7 @@ class P4MergeOptions : public CompilerOptions {
  public:
     bool parseOnly = false;
     bool validateOnly = false;
+    bool secondRound=false;
     vector<string> postnames;
     string postName;
     vector<cstring> mfile;
@@ -73,6 +74,12 @@ class P4MergeOptions : public CompilerOptions {
                            return true;
                        },
                        "Validate the P4 input, running just the front-end");
+        registerOption("--second-round", nullptr,       //used for second round merge,where merge_result.p4 should be former parameter
+                       [this](const char*) {
+                           secondRound = true;
+                           return true;
+                       },
+                       "Mark for the second round of merging");
      }
 };
 void P4MergeOptions::setInputFileForMerge() {
@@ -137,8 +144,13 @@ int main(int argc, char *const argv[]) {
         options0.setInputFileForMerge() ;
     if (::errorCount() > 0)
         return 1;
+    if(options0.secondRound){
+        options0.setInputFileForMeta("meta2.p4");
+    }
+    else{
+        options0.setInputFileForMeta("meta.p4");
+    }
     
-    options0.setInputFileForMeta("meta.p4");
    
 
 
@@ -233,7 +245,7 @@ int main(int argc, char *const argv[]) {
     /*2.0 Merge*/
     
     P4::MergeManager merging(program0,program1,program2);
-    merging.run(options0);
+    merging.run(options0,options0.secondRound);
     
 
 
